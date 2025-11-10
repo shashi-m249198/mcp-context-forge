@@ -37,94 +37,94 @@ permissions:
   id-token: write # required for OIDC token generation
 
 jobs:
-  build-scan-sign:
-    runs-on: ubuntu-latest
+    build-scan-sign:
+        runs-on: ubuntu-latest
 
-    env:
-      CACHE_DIR: /tmp/.buildx-cache # BuildKit layer cache dir
-      # Temporarily disable Trivy (RHEL 10 unsupported). Set to 'true' to re‑enable.
-      TRIVY_ENABLED: 'false'
-
-    steps:
-      # -------------------------------------------------------------
-      # 0️⃣  Checkout source
-      # -------------------------------------------------------------
-      - name: ⬇️  Checkout code
-        uses: actions/checkout@v5
-
-      # -------------------------------------------------------------
-      # 0️⃣.5️⃣  Derive lower-case IMAGE_NAME for Docker tag
-      # -------------------------------------------------------------
-      - name: 🏷️  Set IMAGE_NAME (lower-case repo path)
-        run: |
-          IMAGE="ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')"
-          echo "IMAGE_NAME=$IMAGE" >> "$GITHUB_ENV"
-          echo "Will build & push: $IMAGE_NAME"
-
-      # -------------------------------------------------------------
-      # 1️⃣  Dockerfile lint (Hadolint CLI → SARIF)
-      # -------------------------------------------------------------
-      - name: 🔍  Dockerfile lint (Hadolint)
-        id: hadolint
-        continue-on-error: true
-        run: |
-          curl -sSL https://github.com/hadolint/hadolint/releases/latest/download/hadolint-Linux-x86_64 -o /usr/local/bin/hadolint
-          chmod +x /usr/local/bin/hadolint
-          hadolint -f sarif Containerfile.lite > hadolint-results.sarif
-          echo "HADOLINT_EXIT=$?" >> "$GITHUB_ENV"
-          exit 0
-      - name: ☁️  Upload Hadolint SARIF
-        if: always()
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: hadolint-results.sarif
-
-      # -------------------------------------------------------------
-      # 2️⃣  Set up Buildx & restore cache
-      # -------------------------------------------------------------
-      - name: 🛠️  Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3.11.1
-
-      - name: 🔄  Restore BuildKit layer cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.CACHE_DIR }}
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
-          restore-keys: ${{ runner.os }}-buildx-
-
-      # -------------------------------------------------------------
-      # 3️⃣  Build & tag image (timestamp + latest)
-      # -------------------------------------------------------------
-      - name: 🏗️  Build Docker image
         env:
-          DOCKER_CONTENT_TRUST: "1"
-        run: |
-          TAG=$(date +%s)
-          echo "TAG=$TAG" >> "$GITHUB_ENV"
-          docker buildx build \
-            --file Containerfile.lite \
-            --tag $IMAGE_NAME:$TAG \
-            --tag $IMAGE_NAME:latest \
-            --cache-from type=local,src=${{ env.CACHE_DIR }} \
-            --cache-to   type=local,dest=${{ env.CACHE_DIR }},mode=max \
-            --load \
-            .   # build context is mandatory
-      
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+            CACHE_DIR: /tmp/.buildx-cache # BuildKit layer cache dir
+            # Temporarily disable Trivy (RHEL 10 unsupported). Set to 'true' to re‑enable.
+            TRIVY_ENABLED: 'false'
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
-      - name: Build, tag, and push image to Amazon ECR
-        id: build-image
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
-          run: |
-            docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-            echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+        steps:
+            # -------------------------------------------------------------
+            # 0️⃣  Checkout source
+            # -------------------------------------------------------------
+            -   name: ⬇️  Checkout code
+                uses: actions/checkout@v5
+
+            # -------------------------------------------------------------
+            # 0️⃣.5️⃣  Derive lower-case IMAGE_NAME for Docker tag
+            # -------------------------------------------------------------
+            -   name: 🏷️  Set IMAGE_NAME (lower-case repo path)
+                run: |
+                    IMAGE="ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')"
+                    echo "IMAGE_NAME=$IMAGE" >> "$GITHUB_ENV"
+                    echo "Will build & push: $IMAGE_NAME"
+
+            # -------------------------------------------------------------
+            # 1️⃣  Dockerfile lint (Hadolint CLI → SARIF)
+            # -------------------------------------------------------------
+            -   name: 🔍  Dockerfile lint (Hadolint)
+                id: hadolint
+                continue-on-error: true
+                run: |
+                    curl -sSL https://github.com/hadolint/hadolint/releases/latest/download/hadolint-Linux-x86_64 -o /usr/local/bin/hadolint
+                    chmod +x /usr/local/bin/hadolint
+                    hadolint -f sarif Containerfile.lite > hadolint-results.sarif
+                    echo "HADOLINT_EXIT=$?" >> "$GITHUB_ENV"
+                    exit 0
+            -   name: ☁️  Upload Hadolint SARIF
+                if: always()
+                uses: github/codeql-action/upload-sarif@v3
+                with:
+                    sarif_file: hadolint-results.sarif
+
+            # -------------------------------------------------------------
+            # 2️⃣  Set up Buildx & restore cache
+            # -------------------------------------------------------------
+            -   name: 🛠️  Set up Docker Buildx
+                uses: docker/setup-buildx-action@v3.11.1
+
+            -   name: 🔄  Restore BuildKit layer cache
+                uses: actions/cache@v4
+                with:
+                    path: ${{ env.CACHE_DIR }}
+                    key: ${{ runner.os }}-buildx-${{ github.sha }}
+                    restore-keys: ${{ runner.os }}-buildx-
+
+            # -------------------------------------------------------------
+            # 3️⃣  Build & tag image (timestamp + latest)
+            # -------------------------------------------------------------
+            -   name: 🏗️  Build Docker image
+                env:
+                    DOCKER_CONTENT_TRUST: "1"
+                run: |
+                    TAG=$(date +%s)
+                    echo "TAG=$TAG" >> "$GITHUB_ENV"
+                    docker buildx build \
+                      --file Containerfile.lite \
+                      --tag $IMAGE_NAME:$TAG \
+                      --tag $IMAGE_NAME:latest \
+                      --cache-from type=local,src=${{ env.CACHE_DIR }} \
+                      --cache-to   type=local,dest=${{ env.CACHE_DIR }},mode=max \
+                      --load \
+                      .   # build context is mandatory
+
+            -   name: Configure AWS credentials
+                uses: aws-actions/configure-aws-credentials@v1
+                with:
+                    aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+                    aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+                    aws-region: ${{ env.AWS_REGION }}
+
+            -   name: Login to Amazon ECR
+                id: login-ecr
+                uses: aws-actions/amazon-ecr-login@v1
+            -   name: Build, tag, and push image to Amazon ECR
+                id: build-image
+                env:
+                    ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+                    IMAGE_TAG: ${{ github.sha }}
+                run: |
+                    docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+                    echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
