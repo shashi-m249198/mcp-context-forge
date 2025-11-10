@@ -62,24 +62,6 @@ jobs:
                     echo "Will build & push: $IMAGE_NAME"
 
             # -------------------------------------------------------------
-            # 1️⃣  Dockerfile lint (Hadolint CLI → SARIF)
-            # -------------------------------------------------------------
-            -   name: 🔍  Dockerfile lint (Hadolint)
-                id: hadolint
-                continue-on-error: true
-                run: |
-                    curl -sSL https://github.com/hadolint/hadolint/releases/latest/download/hadolint-Linux-x86_64 -o /usr/local/bin/hadolint
-                    chmod +x /usr/local/bin/hadolint
-                    hadolint -f sarif Containerfile.lite > hadolint-results.sarif
-                    echo "HADOLINT_EXIT=$?" >> "$GITHUB_ENV"
-                    exit 0
-            -   name: ☁️  Upload Hadolint SARIF
-                if: always()
-                uses: github/codeql-action/upload-sarif@v3
-                with:
-                    sarif_file: hadolint-results.sarif
-
-            # -------------------------------------------------------------
             # 2️⃣  Set up Buildx & restore cache
             # -------------------------------------------------------------
             -   name: 🛠️  Set up Docker Buildx
@@ -115,7 +97,7 @@ jobs:
                 with:
                     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
                     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-                    aws-region: ${{ env.AWS_REGION }}
+                    aws-region: "eu-central-1"
 
             -   name: Login to Amazon ECR
                 id: login-ecr
