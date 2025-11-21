@@ -148,41 +148,31 @@
         <div
           class="w-full max-w-screen-2xl mx-auto px-4 py-6 header-inner flex justify-between items-start"
         >
-          <!-- LEFT SIDE (exact original content/placement) -->
+          <!-- LEFT SIDE (UPTIMIZE branding) -->
           <div class="header-left">
-            <h1
-              class="text-3xl font-bold text-gray-800 dark:text-gray-200 leading-tight"
-            >
-              Context Forge - Gateway Administration
-            </h1>
-            <p class="text-gray-600 dark:text-gray-400 mt-1 header-subtitle">
-              AI Gateway and Registry supporting MCP, A2A and REST
-              <span class="mx-2 text-gray-400">|</span>
-              <a
-                href="https://ibm.github.io/mcp-context-forge/"
-                target="_blank"
-                class="text-indigo-600 dark:text-indigo-500 hover:underline"
-                >Docs</a
+            <div class="header-control-center">MCP GATEWAY CONTROL CENTER</div>
+            <div class="header-brand-container">
+              <img
+                src="{{ root_path }}/static/Merck_UPTMIZE_logo.png"
+                alt="UPTIMIZE Logo"
+                class="header-logo"
+              />
+              <h2
+                class="text-2xl font-bold text-gray-800 dark:text-gray-200 leading-tight"
               >
-              <span class="mx-2 text-gray-400">|</span>
-              <a
-                href="https://github.com/IBM/mcp-context-forge"
-                target="_blank"
-                class="text-indigo-600 dark:text-indigo-500 hover:underline"
-                >⭐ GitHub</a
-              >
-              <span class="mx-2 text-gray-400">|</span>
+                MCP Integration Hub
+              </h2>
+            </div>
+          </div>
+
+          <!-- RIGHT SIDE (exact original controls & markup; added lightweight classes for styling on compact) -->
+          <div class="flex items-center space-x-4 header-right">
               <button
                 @click="darkMode = !darkMode"
                 class="p-2 text-indigo-600 dark:text-indigo-500 hover:text-indigo-800 dark:hover:text-indigo-300"
               >
                 <span x-text="darkMode ? '☀️' : '🌙'"></span>
               </button>
-            </p>
-          </div>
-
-          <!-- RIGHT SIDE (exact original controls & markup; added lightweight classes for styling on compact) -->
-          <div class="flex items-center space-x-4 header-right">
             <!-- Team Selector (preserved) -->
             {% if email_auth_enabled %}
             <div
@@ -527,7 +517,7 @@
               🔍 Observability
             </a>
             {% endif %}
-            <a
+            <!-- <a
               href="#plugins"
               id="tab-plugins"
               data-testid="plugins-tab"
@@ -535,8 +525,8 @@
               onclick="showTab('plugins')"
             >
               🔌 Plugins
-            </a>
-            <a
+            </a> -->
+            <!-- <a
               href="#mcp-registry"
               id="tab-mcp-registry"
               data-testid="mcp-registry-tab"
@@ -544,7 +534,7 @@
               onclick="showTab('mcp-registry')"
             >
               📦 MCP Registry
-            </a>
+            </a> -->
             {% if llmchat_enabled %}
             <a
               href="#llm-chat" \
