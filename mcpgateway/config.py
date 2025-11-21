@@ -319,6 +319,7 @@ class Settings(BaseSettings):
     # UI/Admin Feature Flags
     mcpgateway_ui_enabled: bool = False
     mcpgateway_admin_api_enabled: bool = False
+    mcpgateway_ui_airgapped: bool = Field(default=False, description="Use local CDN assets instead of external CDNs for airgapped deployments")
     mcpgateway_bulk_import_enabled: bool = True
     mcpgateway_bulk_import_max_tools: int = 200
     mcpgateway_bulk_import_rate_limit: int = 10
@@ -914,6 +915,7 @@ class Settings(BaseSettings):
 
     # Validation Gateway URL
     gateway_validation_timeout: int = 5  # seconds
+    gateway_max_redirects: int = 5
 
     filelock_name: str = "gateway_service_leader.lock"
 

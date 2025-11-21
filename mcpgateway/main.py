@@ -108,7 +108,7 @@ from mcpgateway.schemas import (
 from mcpgateway.services.a2a_service import A2AAgentError, A2AAgentNameConflictError, A2AAgentNotFoundError, A2AAgentService
 from mcpgateway.services.completion_service import CompletionService
 from mcpgateway.services.export_service import ExportError, ExportService
-from mcpgateway.services.gateway_service import GatewayConnectionError, GatewayError, GatewayNameConflictError, GatewayNotFoundError, GatewayService, GatewayUrlConflictError
+from mcpgateway.services.gateway_service import GatewayConnectionError, GatewayDuplicateConflictError, GatewayError, GatewayNameConflictError, GatewayNotFoundError, GatewayService
 from mcpgateway.services.import_service import ConflictStrategy, ImportConflictError
 from mcpgateway.services.import_service import ImportError as ImportServiceError
 from mcpgateway.services.import_service import ImportService, ImportValidationError
@@ -1512,6 +1512,7 @@ async def handle_sampling(request: Request, db: Session = Depends(get_db), user=
 @server_router.get("/", response_model=List[ServerRead])
 @require_permission("servers.read")
 async def list_servers(
+    request: Request,
     include_inactive: bool = False,
     tags: Optional[str] = None,
     team_id: Optional[str] = None,
@@ -1523,6 +1524,7 @@ async def list_servers(
     Lists servers accessible to the user, with team filtering support.
 
     Args:
+        request (Request): The incoming request object for team_id retrieval.
         include_inactive (bool): Whether to include inactive servers in the response.
         tags (Optional[str]): Comma-separated list of tags to filter by.
         team_id (Optional[str]): Filter by specific team ID.
@@ -1539,6 +1541,20 @@ async def list_servers(
         tags_list = [tag.strip() for tag in tags.split(",") if tag.strip()]
     # Get user email for team filtering
     user_email = get_user_email(user)
+
+    # Check team ID from token
+    token_team_id = getattr(request.state, "team_id", None)
+
+    # Check for team ID mismatch
+    if team_id is not None and token_team_id is not None and team_id != token_team_id:
+        return JSONResponse(
+            content={"message": "Access issue: This API token does not have the required permissions for this team."},
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
+
+    # Determine final team ID
+    team_id = team_id or token_team_id
+
     # Use team-filtered server listing
     if team_id or visibility:
         data = await server_service.list_servers_for_user(db=db, user_email=user_email, team_id=team_id, visibility=visibility, include_inactive=include_inactive)
@@ -1610,15 +1626,17 @@ async def create_server(
         # Get user email and handle team assignment
         user_email = get_user_email(user)
 
-        # If no team specified, get user's personal team
-        if not team_id:
-            # First-Party
-            from mcpgateway.services.team_management_service import TeamManagementService  # pylint: disable=import-outside-toplevel
+        token_team_id = getattr(request.state, "team_id", None)
 
-            team_service = TeamManagementService(db)
-            user_teams = await team_service.get_user_teams(user_email, include_personal=True)
-            personal_team = next((team for team in user_teams if team.is_personal), None)
-            team_id = personal_team.id if personal_team else None
+        # Check for team ID mismatch
+        if team_id is not None and token_team_id is not None and team_id != token_team_id:
+            return JSONResponse(
+                content={"message": "Access issue: This API token does not have the required permissions for this team."},
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Determine final team ID
+        team_id = team_id or token_team_id
 
         logger.debug(f"User {user_email} is creating a new server for team {team_id}")
         return await server_service.register_server(
@@ -2078,15 +2096,17 @@ async def create_a2a_agent(
         # Get user email and handle team assignment
         user_email = get_user_email(user)
 
-        # If no team specified, get user's personal team
-        if not team_id:
-            # First-Party
-            from mcpgateway.services.team_management_service import TeamManagementService  # pylint: disable=import-outside-toplevel
+        token_team_id = getattr(request.state, "team_id", None)
 
-            team_service = TeamManagementService(db)
-            user_teams = await team_service.get_user_teams(user_email, include_personal=True)
-            personal_team = next((team for team in user_teams if team.is_personal), None)
-            team_id = personal_team.id if personal_team else None
+        # Check for team ID mismatch
+        if team_id is not None and token_team_id is not None and team_id != token_team_id:
+            return JSONResponse(
+                content={"message": "Access issue: This API token does not have the required permissions for this team."},
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Determine final team ID
+        team_id = team_id or token_team_id
 
         logger.debug(f"User {user_email} is creating a new A2A agent for team {team_id}")
         if a2a_service is None:
@@ -2290,11 +2310,13 @@ async def invoke_a2a_agent(
 @tool_router.get("/", response_model=Union[List[ToolRead], List[Dict], Dict, List])
 @require_permission("tools.read")
 async def list_tools(
+    request: Request,
     cursor: Optional[str] = None,
     include_inactive: bool = False,
     tags: Optional[str] = None,
     team_id: Optional[str] = Query(None, description="Filter by team ID"),
     visibility: Optional[str] = Query(None, description="Filter by visibility: private, team, public"),
+    gateway_id: Optional[str] = Query(None, description="Filter by gateway ID"),
     db: Session = Depends(get_db),
     apijsonpath: JsonPathModifier = Body(None),
     user=Depends(get_current_user_with_permissions),
@@ -2302,11 +2324,13 @@ async def list_tools(
     """List all registered tools with team-based filtering and pagination support.
 
     Args:
+        request (Request): The FastAPI request object for team_id retrieval
         cursor: Pagination cursor for fetching the next set of results
         include_inactive: Whether to include inactive tools in the results
         tags: Comma-separated list of tags to filter by (e.g., "api,data")
         team_id: Optional team ID to filter tools by specific team
         visibility: Optional visibility filter (private, team, public)
+        gateway_id: Optional gateway ID to filter tools by specific gateway
         db: Database session
         apijsonpath: JSON path modifier to filter or transform the response
         user: Authenticated user with permissions
@@ -2323,6 +2347,19 @@ async def list_tools(
     # Get user email for team filtering
     user_email = get_user_email(user)
 
+    # Check team_id from token as well
+    token_team_id = getattr(request.state, "team_id", None)
+
+    # Check for team ID mismatch
+    if team_id is not None and token_team_id is not None and team_id != token_team_id:
+        return JSONResponse(
+            content={"message": "Access issue: This API token does not have the required permissions for this team."},
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
+
+    # Determine final team ID
+    team_id = team_id or token_team_id
+
     # Use team-filtered tool listing
     if team_id or visibility:
         data = await tool_service.list_tools_for_user(db=db, user_email=user_email, team_id=team_id, visibility=visibility, include_inactive=include_inactive)
@@ -2333,6 +2370,10 @@ async def list_tools(
     else:
         # Use existing method for backward compatibility when no team filtering
         data, _ = await tool_service.list_tools(db, cursor=cursor, include_inactive=include_inactive, tags=tags_list)
+
+    # Apply gateway_id filtering if provided
+    if gateway_id:
+        data = [tool for tool in data if str(tool.gateway_id) == gateway_id]
 
     if apijsonpath is None:
         return data
@@ -2377,15 +2418,17 @@ async def create_tool(
         # Get user email and handle team assignment
         user_email = get_user_email(user)
 
-        # If no team specified, get user's personal team
-        if not team_id:
-            # First-Party
-            from mcpgateway.services.team_management_service import TeamManagementService  # pylint: disable=import-outside-toplevel
+        token_team_id = getattr(request.state, "team_id", None)
 
-            team_service = TeamManagementService(db)
-            user_teams = await team_service.get_user_teams(user_email, include_personal=True)
-            personal_team = next((team for team in user_teams if team.is_personal), None)
-            team_id = personal_team.id if personal_team else None
+        # Check for team ID mismatch
+        if team_id is not None and token_team_id is not None and team_id != token_team_id:
+            return JSONResponse(
+                content={"message": "Access issue: This API token does not have the required permissions for this team."},
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Determine final team ID
+        team_id = team_id or token_team_id
 
         logger.debug(f"User {user_email} is creating a new tool for team {team_id}")
         return await tool_service.register_tool(
@@ -2657,6 +2700,7 @@ async def toggle_resource_status(
 @resource_router.get("/", response_model=List[ResourceRead])
 @require_permission("resources.read")
 async def list_resources(
+    request: Request,
     cursor: Optional[str] = None,
     include_inactive: bool = False,
     tags: Optional[str] = None,
@@ -2669,6 +2713,7 @@ async def list_resources(
     Retrieve a list of resources accessible to the user, with team filtering support.
 
     Args:
+        request (Request): The FastAPI request object for team_id retrieval
         cursor (Optional[str]): Optional cursor for pagination.
         include_inactive (bool): Whether to include inactive resources.
         tags (Optional[str]): Comma-separated list of tags to filter by.
@@ -2686,6 +2731,19 @@ async def list_resources(
         tags_list = [tag.strip() for tag in tags.split(",") if tag.strip()]
     # Get user email for team filtering
     user_email = get_user_email(user)
+
+    # Check team_id from token as well
+    token_team_id = getattr(request.state, "team_id", None)
+
+    # Check for team ID mismatch
+    if team_id is not None and token_team_id is not None and team_id != token_team_id:
+        return JSONResponse(
+            content={"message": "Access issue: This API token does not have the required permissions for this team."},
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
+
+    # Determine final team ID
+    team_id = team_id or token_team_id
 
     # Use team-filtered resource listing
     if team_id or visibility:
@@ -2738,15 +2796,17 @@ async def create_resource(
         # Get user email and handle team assignment
         user_email = get_user_email(user)
 
-        # If no team specified, get user's personal team
-        if not team_id:
-            # First-Party
-            from mcpgateway.services.team_management_service import TeamManagementService  # pylint: disable=import-outside-toplevel
+        token_team_id = getattr(request.state, "team_id", None)
 
-            team_service = TeamManagementService(db)
-            user_teams = await team_service.get_user_teams(user_email, include_personal=True)
-            personal_team = next((team for team in user_teams if team.is_personal), None)
-            team_id = personal_team.id if personal_team else None
+        # Check for team ID mismatch
+        if team_id is not None and token_team_id is not None and team_id != token_team_id:
+            return JSONResponse(
+                content={"message": "Access issue: This API token does not have the required permissions for this team."},
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Determine final team ID
+        team_id = team_id or token_team_id
 
         logger.debug(f"User {user_email} is creating a new resource for team {team_id}")
         return await resource_service.register_resource(
@@ -2988,6 +3048,7 @@ async def toggle_prompt_status(
 @prompt_router.get("/", response_model=List[PromptRead])
 @require_permission("prompts.read")
 async def list_prompts(
+    request: Request,
     cursor: Optional[str] = None,
     include_inactive: bool = False,
     tags: Optional[str] = None,
@@ -3000,6 +3061,7 @@ async def list_prompts(
     List prompts accessible to the user, with team filtering support.
 
     Args:
+        request (Request): The FastAPI request object for team_id retrieval
         cursor: Cursor for pagination.
         include_inactive: Include inactive prompts.
         tags: Comma-separated list of tags to filter by.
@@ -3017,6 +3079,19 @@ async def list_prompts(
         tags_list = [tag.strip() for tag in tags.split(",") if tag.strip()]
     # Get user email for team filtering
     user_email = get_user_email(user)
+
+    # Check team_id from token as well
+    token_team_id = getattr(request.state, "team_id", None)
+
+    # Check for team ID mismatch
+    if team_id is not None and token_team_id is not None and team_id != token_team_id:
+        return JSONResponse(
+            content={"message": "Access issue: This API token does not have the required permissions for this team."},
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
+
+    # Determine final team ID
+    team_id = team_id or token_team_id
 
     # Use team-filtered prompt listing
     if team_id or visibility:
@@ -3068,15 +3143,17 @@ async def create_prompt(
         # Get user email and handle team assignment
         user_email = get_user_email(user)
 
-        # If no team specified, get user's personal team
-        if not team_id:
-            # First-Party
-            from mcpgateway.services.team_management_service import TeamManagementService  # pylint: disable=import-outside-toplevel
+        token_team_id = getattr(request.state, "team_id", None)
 
-            team_service = TeamManagementService(db)
-            user_teams = await team_service.get_user_teams(user_email, include_personal=True)
-            personal_team = next((team for team in user_teams if team.is_personal), None)
-            team_id = personal_team.id if personal_team else None
+        # Check for team ID mismatch
+        if team_id is not None and token_team_id is not None and team_id != token_team_id:
+            return JSONResponse(
+                content={"message": "Access issue: This API token does not have the required permissions for this team."},
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Determine final team ID
+        team_id = team_id or token_team_id
 
         logger.debug(f"User {user_email} is creating a new prompt for team {team_id}")
         return await prompt_service.register_prompt(
@@ -3335,7 +3412,10 @@ async def toggle_gateway_status(
 @gateway_router.get("/", response_model=List[GatewayRead])
 @require_permission("gateways.read")
 async def list_gateways(
+    request: Request,
     include_inactive: bool = False,
+    team_id: Optional[str] = Query(None, description="Filter by team ID"),
+    visibility: Optional[str] = Query(None, description="Filter by visibility: private, team, public"),
     db: Session = Depends(get_db),
     user=Depends(get_current_user_with_permissions),
 ) -> List[GatewayRead]:
@@ -3343,7 +3423,10 @@ async def list_gateways(
     List all gateways.
 
     Args:
+        request (Request): The FastAPI request object for team_id retrieval
         include_inactive: Include inactive gateways.
+        team_id (Optional): Filter by specific team ID.
+        visibility (Optional): Filter by visibility (private, team, public).
         db: Database session.
         user: Authenticated user.
 
@@ -3351,6 +3434,25 @@ async def list_gateways(
         List of gateway records.
     """
     logger.debug(f"User '{user}' requested list of gateways with include_inactive={include_inactive}")
+
+    user_email = get_user_email(user)
+
+    # Check team_id from token
+    token_team_id = getattr(request.state, "team_id", None)
+
+    # Check for team ID mismatch
+    if team_id is not None and token_team_id is not None and team_id != token_team_id:
+        return JSONResponse(
+            content={"message": "Access issue: This API token does not have the required permissions for this team."},
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
+
+    # Determine final team ID
+    team_id = team_id or token_team_id
+
+    if team_id or visibility:
+        return await gateway_service.list_gateways_for_user(db=db, user_email=user_email, team_id=team_id, visibility=visibility, include_inactive=include_inactive)
+
     return await gateway_service.list_gateways(db, include_inactive=include_inactive)
 
 
@@ -3382,18 +3484,20 @@ async def register_gateway(
 
         # Get user email and handle team assignment
         user_email = get_user_email(user)
-        team_id = gateway.team_id
+
+        token_team_id = getattr(request.state, "team_id", None)
+        gateway_team_id = gateway.team_id
+
+        # Check for team ID mismatch
+        if gateway_team_id is not None and token_team_id is not None and gateway_team_id != token_team_id:
+            return JSONResponse(
+                content={"message": "Access issue: This API token does not have the required permissions for this team."},
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Determine final team ID
+        team_id = gateway_team_id or token_team_id
         visibility = gateway.visibility
-
-        # If no team specified, get user's personal team
-        if not team_id:
-            # First-Party
-            from mcpgateway.services.team_management_service import TeamManagementService  # pylint: disable=import-outside-toplevel
-
-            team_service = TeamManagementService(db)
-            user_teams = await team_service.get_user_teams(user_email, include_personal=True)
-            personal_team = next((team for team in user_teams if team.is_personal), None)
-            team_id = personal_team.id if personal_team else None
 
         logger.debug(f"User {user_email} is creating a new gateway for team {team_id}")
 
@@ -3415,8 +3519,8 @@ async def register_gateway(
             return JSONResponse(content={"message": "Unable to process input"}, status_code=status.HTTP_400_BAD_REQUEST)
         if isinstance(ex, GatewayNameConflictError):
             return JSONResponse(content={"message": "Gateway name already exists"}, status_code=status.HTTP_409_CONFLICT)
-        if isinstance(ex, GatewayUrlConflictError):
-            return JSONResponse(content={"message": "Gateway URL already exists"}, status_code=status.HTTP_409_CONFLICT)
+        if isinstance(ex, GatewayDuplicateConflictError):
+            return JSONResponse(content={"message": "Gateway already exists"}, status_code=status.HTTP_409_CONFLICT)
         if isinstance(ex, RuntimeError):
             return JSONResponse(content={"message": "Error during execution"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
         if isinstance(ex, ValidationError):
@@ -3493,8 +3597,8 @@ async def update_gateway(
             return JSONResponse(content={"message": "Unable to process input"}, status_code=status.HTTP_400_BAD_REQUEST)
         if isinstance(ex, GatewayNameConflictError):
             return JSONResponse(content={"message": "Gateway name already exists"}, status_code=status.HTTP_409_CONFLICT)
-        if isinstance(ex, GatewayUrlConflictError):
-            return JSONResponse(content={"message": "Gateway URL already exists"}, status_code=status.HTTP_409_CONFLICT)
+        if isinstance(ex, GatewayDuplicateConflictError):
+            return JSONResponse(content={"message": "Gateway already exists"}, status_code=status.HTTP_409_CONFLICT)
         if isinstance(ex, RuntimeError):
             return JSONResponse(content={"message": "Error during execution"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
         if isinstance(ex, ValidationError):
@@ -3524,7 +3628,17 @@ async def delete_gateway(gateway_id: str, db: Session = Depends(get_db), user=De
     logger.debug(f"User '{user}' requested deletion of gateway {gateway_id}")
     try:
         user_email = user.get("email") if isinstance(user, dict) else str(user)
+        current = await gateway_service.get_gateway(db, gateway_id)
+        has_resources = bool(current.capabilities.get("resources"))
         await gateway_service.delete_gateway(db, gateway_id, user_email=user_email)
+
+        # If the gateway had resources and was successfully deleted, invalidate
+        # the whole resource cache. This is needed since the cache holds both
+        # individual resources and the full listing which will also need to be
+        # invalidated.
+        if has_resources:
+            await invalidate_resource_cache()
+
         return {"status": "success", "message": f"Gateway {gateway_id} deleted"}
     except PermissionError as e:
         raise HTTPException(status_code=403, detail=str(e))
