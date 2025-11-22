@@ -92,7 +92,7 @@ table thead th {
 } */
 
 /* URL column - panel-specific styling */
-/* MCP Servers (Gateways) - URL is 3rd column (after S.No hidden, Name, URL) */
+/* MCP Servers - URL is 3rd column (after S.No hidden, Name, URL) */
 #gateways-panel table td:nth-child(3) {
     max-width: 350px !important;
     white-space: nowrap !important;
@@ -108,12 +108,30 @@ table thead th {
     /* text-overflow: ellipsis !important; */
 }
 
-/* Hide S.No column */
+/* Hide columns */
 #gateways-panel table thead th:first-child,
 #gateways-panel table thead th:nth-child(6),
 #gateways-panel table tbody td:first-child,
 #gateways-panel table tbody td:nth-child(6) {
     display: none !important;
+}
+
+/* Show full URL on hover - MCP Servers URL column */
+#gateways-panel table td:nth-child(3):hover {
+    white-space: normal !important;
+    overflow: visible !important;
+    /* max-width: none !important; */
+    position: relative;
+    z-index: 100;
+    background: rgb(255 255 255) !important;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 20%) !important;
+    padding: 0.75rem !important;
+    border-radius: 0.5rem;
+}
+
+.dark #gateways-panel table td:nth-child(3):hover {
+    background: rgb(31 41 55) !important;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 40%) !important;
 }
 
 /* Actions column - minimum width with flexibility */
@@ -123,21 +141,82 @@ table thead th {
     white-space: normal !important;
 }
 
-/* Virtual Servers (Catalog) - URL is 3rd column */
-#catalog-panel table td:nth-child(3) {
+/* Virtual Servers (Catalog)*/
+
+/* Hide columns */
+#catalog-panel table thead th:first-child,
+#catalog-panel table thead th:nth-child(2),
+#catalog-panel table thead th:nth-child(3),
+#catalog-panel table tbody td:first-child,
+#catalog-panel table tbody td:nth-child(2),
+#catalog-panel table tbody td:nth-child(3) {
+    display: none !important;
+}
+
+/* Description and Owner column - Virtual Servers (Catalog) */
+#catalog-panel table td:nth-child(5),
+#catalog-panel table td:nth-child(8) {
     max-width: 350px !important;
+    max-height: 160px !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
+    /* text-wrap: initial !important; */
+}
+
+#catalog-panel table td:nth-child(6) {
+    text-align: center !important;
+}
+
+/* Show full description on hover as tooltip - Virtual Servers (Catalog) */
+#catalog-panel table td:nth-child(5):hover {
+    position: relative !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    /* max-width: 400px !important; */
+    min-width: 300px !important;
+    z-index: 100;
+    background: rgb(255 255 255) !important;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 20%) !important;
+    padding: 0.75rem !important;
+    border-radius: 0.5rem;
+    border: 1px solid rgb(229 231 235);
+    left: auto;
+    top: auto;
+}
+
+.dark #catalog-panel table td:nth-child(5):hover {
+    background: rgb(31 41 55) !important;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 40%) !important;
+    border-color: rgb(55 65 81);
+    color: rgb(243 244 246) !important;
 }
 
 /* Virtual Servers (Roots) - URL column */
-#roots-panel table td:nth-child(2) {
+/* #roots-panel table td:nth-child(2) {
     max-width: 350px !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
+} */
+
+/* Show full URL on hover - Virtual Servers (Roots)
+#roots-panel table td:nth-child(2):hover {
+    white-space: normal !important;
+    overflow: visible !important;
+    max-width: none !important;
+    position: relative;
+    z-index: 100;
+    background: rgb(255 255 255) !important;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 20%) !important;
+    padding: 0.75rem !important;
+    border-radius: 0.5rem;
 }
+
+.dark #roots-panel table td:nth-child(2):hover {
+    background: rgb(31 41 55) !important;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 40%) !important;
+} */
 
 /* Specific URL styling for better readability */
 table td a[href^="http"],
@@ -283,7 +362,7 @@ a.text-blue-500,
 a.text-indigo-600 {
     background: transparent !important;
     border: none !important;
-    padding: 0.375rem 0.75rem !important;
+    /* padding: 0.375rem 0.75rem !important; */
     border-radius: 0.5rem !important;
     font-weight: 500 !important;
     transition: all 0.15s ease !important;
@@ -295,6 +374,10 @@ a.text-indigo-600 {
     background: rgb(219 234 254 / 50%) !important;
 }
 
+.text-purple-600:hover {
+    background: rgba(124 108 220/30%) !important;
+}
+
 .text-green-600,
 .text-green-500,
 button.text-green-600,
@@ -303,7 +386,7 @@ a.text-green-600,
 a.text-green-500 {
     background: transparent !important;
     border: none !important;
-    padding: 0.375rem 0.75rem !important;
+    /* padding: 0.375rem 0.75rem !important; */
     border-radius: 0.5rem !important;
     font-weight: 500 !important;
     transition: all 0.15s ease !important;
@@ -322,7 +405,7 @@ a.text-orange-600,
 a.text-orange-500 {
     background: transparent !important;
     border: none !important;
-    padding: 0.375rem 0.75rem !important;
+    /* padding: 0.375rem 0.75rem !important; */
     border-radius: 0.5rem !important;
     font-weight: 500 !important;
     transition: all 0.15s ease !important;
@@ -341,7 +424,7 @@ a.text-yellow-600,
 a.text-yellow-500 {
     background: transparent !important;
     border: none !important;
-    padding: 0.375rem 0.75rem !important;
+    /* padding: 0.375rem 0.75rem !important; */
     border-radius: 0.5rem !important;
     font-weight: 500 !important;
     transition: all 0.15s ease !important;
@@ -360,7 +443,7 @@ a.text-red-600,
 a.text-red-500 {
     background: transparent !important;
     border: none !important;
-    padding: 0.375rem 0.75rem !important;
+    /* padding: 0.375rem 0.75rem !important; */
     border-radius: 0.5rem !important;
     font-weight: 500 !important;
     transition: all 0.15s ease !important;
@@ -449,6 +532,15 @@ form button:not([type="submit"]) {
     border-color: rgb(124 108 220) !important;
 }
 
+button.inline-flex {
+    color: rgb(55 65 81) !important; /* Dark gray text */
+}
+
+/* Keep white text for submit buttons with inline-flex */
+button[type="submit"].inline-flex {
+    color: white !important;
+}
+
 /* ============================================
    BADGE & TAG ENHANCEMENTS
    ============================================ */
@@ -461,6 +553,15 @@ form button:not([type="submit"]) {
     border-radius: 0.5rem !important;
     font-weight: 600 !important;
 }
+
+.bg-purple-100 {
+    background: rgb(243 232 255) !important;
+    color: rgb(107 33 168)!important;
+    padding: 0.375rem 0.75rem !important;
+    border-radius: 0.5rem !important;
+    font-weight: 600 !important;
+}
+
 
 .bg-yellow-100 {
     background: rgb(254 249 195) !important;
@@ -1665,7 +1766,7 @@ form button:not([type="submit"]) {
 
 /* Tab navigation container - prevent horizontal overflow */
 nav[class*="-mb-px"] {
-    overflow: auto hidden;
+    /* overflow: auto hidden; */
     scrollbar-width: thin;
     scrollbar-color: rgb(156 163 175 / 50%) transparent;
     -webkit-overflow-scrolling: touch;

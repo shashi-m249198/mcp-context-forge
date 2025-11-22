@@ -1740,9 +1740,9 @@
                   <th
                     class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
                   >
-                    Tools
+                    Tools | Resources | Prompts
                   </th>
-                  <th
+                  <!-- <th
                     class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
                   >
                     Resources
@@ -1751,7 +1751,7 @@
                     class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
                   >
                     Prompts
-                  </th>
+                  </th> -->
                   <th
                     class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
                   >
@@ -1831,8 +1831,36 @@
                       >0 tools</span
                     >
                     {% endif %}
+                    <br>
+                    <br>
+                    {% if server.associatedResources %}
+                    <span
+                      class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
+                    >
+                      {{ server.associatedResources | length }} resource{{ 's'
+                      if server.associatedResources | length != 1 else '' }}
+                    </span>
+                    {% else %}
+                    <span class="text-gray-500 dark:text-gray-400 text-xs"
+                      >0 resources</span
+                    >
+                    {% endif %}
+                    <br>
+                    <br>
+                    {% if server.associatedPrompts %}
+                    <span
+                      class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300"
+                    >
+                      {{ server.associatedPrompts | length }} prompt{{ 's' if
+                      server.associatedPrompts | length != 1 else '' }}
+                    </span>
+                    {% else %}
+                    <span class="text-gray-500 dark:text-gray-400 text-xs"
+                      >0 prompts</span
+                    >
+                    {% endif %}
                   </td>
-                  <td
+                  <!-- <td
                     class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300"
                   >
                     {% if server.associatedResources %}
@@ -1863,7 +1891,7 @@
                       >0 prompts</span
                     >
                     {% endif %}
-                  </td>
+                  </td> -->
                   <td class="px-6 py-4 whitespace-nowrap">
                     {% if server.tags %} {% for tag in server.tags %}
                     <span
