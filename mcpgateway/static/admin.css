@@ -83,16 +83,8 @@ table thead th {
     color: rgb(196 181 253) !important;
 }
 
-/* Table cell general styling - no wrapping, use ellipsis */
-/* table td {
-    max-width: 200px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-} */
-
 /* URL column - panel-specific styling */
-/* MCP Servers - URL is 3rd column (after S.No hidden, Name, URL) */
+/* MCP Servers - URL is 3rd column */
 #gateways-panel table td:nth-child(3) {
     max-width: 350px !important;
     white-space: nowrap !important;
@@ -154,7 +146,7 @@ table thead th {
 }
 
 /* Description and Owner column - Virtual Servers (Catalog) */
-#catalog-panel table td:nth-child(5),
+
 #catalog-panel table td:nth-child(8) {
     max-width: 350px !important;
     max-height: 160px !important;
@@ -162,6 +154,17 @@ table thead th {
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     /* text-wrap: initial !important; */
+}
+
+#catalog-panel table td:nth-child(5) /* Description */ {
+    max-width: 300px !important;
+    max-height: 120px !important;
+    white-space: normal !important;
+    overflow: hidden !important;
+    display: -webkit-box !important;
+    -webkit-box-orient: vertical !important;
+    -webkit-line-clamp: 5 !important;
+    text-overflow: ellipsis !important;
 }
 
 #catalog-panel table td:nth-child(6) {
@@ -173,8 +176,11 @@ table thead th {
     position: relative !important;
     white-space: normal !important;
     overflow: visible !important;
-    /* max-width: 400px !important; */
     min-width: 300px !important;
+    max-height: none !important;  /* Remove height limit */
+    display: block !important;     /* Remove webkit-box display */
+    -webkit-line-clamp: unset !important;  /* Remove line clamp */
+    -webkit-box-orient: unset !important;  /* Remove box orientation */
     z-index: 100;
     background: rgb(255 255 255) !important;
     box-shadow: 0 4px 12px rgb(0 0 0 / 20%) !important;
@@ -192,31 +198,291 @@ table thead th {
     color: rgb(243 244 246) !important;
 }
 
-/* Virtual Servers (Roots) - URL column */
-/* #roots-panel table td:nth-child(2) {
-    max-width: 350px !important;
+/* Tools Panel */
+
+/* Hide columns */
+#tools-panel table thead th:nth-child(2), /* Gateway Name */
+#tools-panel table thead th:nth-child(4), /* URL */
+#tools-panel table thead th:nth-child(8), /* Annotations */
+#tools-panel table tbody td:nth-child(2),
+#tools-panel table tbody td:nth-child(4),
+#tools-panel table tbody td:nth-child(8) {
+    display: none !important;
+}
+
+/* Description and Owner column - Tools Panel */
+#tools-panel table td:nth-child(10) /* Owner */ {
+    max-width: 300px !important;
+    max-height: 160px !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
-} */
+}
 
-/* Show full URL on hover - Virtual Servers (Roots)
-#roots-panel table td:nth-child(2):hover {
+#tools-panel table td:nth-child(7) /* Description */ {
+    max-width: 300px !important;
+    max-height: 80px !important;
+    white-space: normal !important;
+    overflow: hidden !important;
+    display: -webkit-box !important;
+    -webkit-box-orient: vertical !important;
+    -webkit-line-clamp: 3 !important;
+    text-overflow: ellipsis !important;
+    /* text-overflow: ellipsis !important; */
+    /* text-wrap: initial !important; */
+}
+
+#tools-panel table th td:first-child /* S. No. */ {
+    max-width: 25px !important;
+}
+
+#tools-panel table td:nth-child(3), /* Name */
+#tools-panel table td:nth-child(10), /* Owner */
+#tools-panel table td:nth-child(11) /* Team */{
+    min-width: 150px !important;
+    text-wrap: inherit !important;
+}
+
+#tools-panel table td:nth-child(5),
+#tools-panel table td:nth-child(9),
+#tools-panel table td:nth-child(11) {
+    text-align: center !important;
+}
+
+/* Show full description on hover as tooltip - Tools Panel */
+#tools-panel table td:nth-child(7):hover {
+    position: relative !important;
     white-space: normal !important;
     overflow: visible !important;
-    max-width: none !important;
-    position: relative;
+    min-width: 300px !important;
+    max-width: 300px !important;
+    max-height: none !important;  /* Remove height limit */
+    display: block !important;     /* Remove webkit-box display */
+    -webkit-line-clamp: unset !important;  /* Remove line clamp */
+    -webkit-box-orient: unset !important;  /* Remove box orientation */
     z-index: 100;
     background: rgb(255 255 255) !important;
     box-shadow: 0 4px 12px rgb(0 0 0 / 20%) !important;
     padding: 0.75rem !important;
     border-radius: 0.5rem;
+    border: 1px solid rgb(229 231 235);
+    left: auto;
+    top: auto;
 }
 
-.dark #roots-panel table td:nth-child(2):hover {
+.dark #tools-panel table td:nth-child(7):hover {
     background: rgb(31 41 55) !important;
     box-shadow: 0 4px 12px rgb(0 0 0 / 40%) !important;
-} */
+    border-color: rgb(55 65 81);
+    color: rgb(243 244 246) !important;
+}
+
+/* Prompts Panel */
+
+/* Description and Owner column - Prompts Panel */
+#prompts-panel table td:nth-child(2), /* Name */
+#prompts-panel table td:nth-child(6) /* Owner */ {
+    max-width: 300px !important;
+    max-height: 160px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+#prompts-panel table td:nth-child(3) /* Description */ {
+    max-width: 300px !important;
+    max-height: 80px !important;
+    white-space: normal !important;
+    overflow: hidden !important;
+    display: -webkit-box !important;
+    -webkit-box-orient: vertical !important;
+    -webkit-line-clamp: 3 !important;
+    text-overflow: ellipsis !important;
+}
+
+#prompts-panel table td:nth-child(5), /* Owner */
+#prompts-panel table td:nth-child(6) /* Team */{
+    min-width: 150px !important;
+    text-wrap: inherit !important;
+}
+
+/* Show full description on hover as tooltip - Prompts Panel */
+#prompts-panel table td:nth-child(3):hover {
+    position: relative !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    min-width: 300px !important;
+    max-height: none !important;  /* Remove height limit */
+    display: block !important;     /* Remove webkit-box display */
+    -webkit-line-clamp: unset !important;  /* Remove line clamp */
+    -webkit-box-orient: unset !important;  /* Remove box orientation */
+    z-index: 100;
+    background: rgb(255 255 255) !important;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 20%) !important;
+    padding: 0.75rem !important;
+    border-radius: 0.5rem;
+    border: 1px solid rgb(229 231 235);
+    left: auto;
+    top: auto;
+}
+
+.dark #prompts-panel table td:nth-child(3):hover {
+    background: rgb(31 41 55) !important;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 40%) !important;
+    border-color: rgb(55 65 81);
+    color: rgb(243 244 246) !important;
+}
+
+/* Resources Panel */
+
+/* Description and Owner column - Resources Panel */
+#resources-panel table td:nth-child(2), /* URI */
+#resources-panel table td:nth-child(7), /* Owner */ 
+#resources-panel table td:nth-child(8) /* Team */{
+    max-width: 200px !important;
+    max-height: 160px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-wrap: inherit !important;
+    text-overflow: ellipsis !important;
+    /* text-wrap: initial !important; */
+}
+
+#resources-panel table td:nth-child(4) /* Description */ {
+    max-width: 200px !important;
+    max-height: 80px !important;
+    white-space: normal !important;
+    overflow: hidden !important;
+    display: -webkit-box !important;
+    -webkit-box-orient: vertical !important;
+    -webkit-line-clamp: 3 !important;
+    text-overflow: ellipsis !important;
+}
+
+#resources-panel table td:nth-child(2), /* URI */ 
+#resources-panel table td:nth-child(7) /* Owner */ {
+/* #resources-panel table td:nth-child(8) Team{ */
+    min-width: 125px !important;
+    text-wrap: inherit !important;
+}
+
+/* Show full description on hover as tooltip - Resources Panel */
+#resources-panel table td:nth-child(4):hover {
+    position: relative !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    min-width: 200px !important;
+    max-height: none !important;  /* Remove height limit */
+    display: block !important;     /* Remove webkit-box display */
+    -webkit-line-clamp: unset !important;  /* Remove line clamp */
+    -webkit-box-orient: unset !important;  /* Remove box orientation */
+    z-index: 100;
+    background: rgb(255 255 255) !important;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 20%) !important;
+    padding: 0.75rem !important;
+    border-radius: 0.5rem;
+    border: 1px solid rgb(229 231 235);
+    left: auto;
+    top: auto;
+}
+
+.dark #resources-panel table td:nth-child(4):hover {
+    background: rgb(31 41 55) !important;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 40%) !important;
+    border-color: rgb(55 65 81);
+    color: rgb(243 244 246) !important;
+}
+
+/* A2A Agents Panel */
+
+/* Description and Owner column -  A2A Agents */
+#a2a-agents-panel table td:nth-child(2) /* Name */ {
+    min-width: 150px !important;
+    max-width: 150px !important;
+    text-wrap: inherit !important;
+}
+
+#a2a-agents-panel table td:nth-child(4) /* Endpoint */ {
+    min-width: 150px !important;
+    max-width: 200px !important;  /* Slightly wider for URLs */
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+/* Show full URL on hover - A2A Agents Endpoint column */
+#a2a-agents-panel table td:nth-child(4):hover {
+    position: relative !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    min-width: 150px !important;
+    max-width: 200px !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+    z-index: 100;
+    background: rgb(255 255 255) !important;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 20%) !important;
+    padding: 0.75rem !important;
+    border-radius: 0.5rem;
+    border: 1px solid rgb(229 231 235);
+    left: auto;
+    top: auto;
+}
+
+.dark #a2a-agents-panel table td:nth-child(4):hover {
+    background: rgb(31 41 55) !important;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 40%) !important;
+    border-color: rgb(55 65 81);
+    color: rgb(243 244 246) !important;
+}
+
+#a2a-agents-panel table thead th:first-child, /* ID */
+#a2a-agents-panel table tbody td:first-child {
+    display: none !important;
+}
+
+#a2a-agents-panel table td:nth-child(3) /* Description */
+{
+    max-width: 200px !important;
+    max-height: 100px !important;
+    white-space: normal !important;
+    overflow: hidden !important;
+    display: -webkit-box !important;
+    -webkit-box-orient: vertical !important;
+    -webkit-line-clamp: 4 !important;
+    text-overflow: ellipsis !important;
+}
+
+
+/* Show full description on hover as tooltip -  A2A Agents */
+
+#a2a-agents-panel table td:nth-child(3):hover {
+    position: relative !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    min-width: 200px !important;
+    max-height: none !important;  /* Remove height limit */
+    display: block !important;     /* Remove webkit-box display */
+    -webkit-line-clamp: unset !important;  /* Remove line clamp */
+    -webkit-box-orient: unset !important;  /* Remove box orientation */
+    z-index: 100;
+    background: rgb(255 255 255) !important;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 20%) !important;
+    padding: 0.75rem !important;
+    border-radius: 0.5rem;
+    border: 1px solid rgb(229 231 235);
+    left: auto;
+    top: auto;
+}
+
+
+.dark #a2a-agents-panel table td:nth-child(3):hover {
+    background: rgb(31 41 55) !important;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 40%) !important;
+    border-color: rgb(55 65 81);
+    color: rgb(243 244 246) !important;
+}
+
 
 /* Specific URL styling for better readability */
 table td a[href^="http"],
