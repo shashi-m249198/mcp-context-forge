@@ -21,9 +21,9 @@
 name: Build and push container image to ECR
 on:
   push:
-    branches: ["main"]
+    branches: ["uptimize-main"]
   pull_request:
-    branches: ["main"]
+    branches: ["uptimize-main"]
 
 
 # -----------------------------------------------------------------
