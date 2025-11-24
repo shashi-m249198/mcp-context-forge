@@ -113,4 +113,4 @@ jobs:
                     echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:latest" >> $GITHUB_OUTPUT
             -   name: Force deployment
                 run: |
-                 aws ecs update-service --cluster sparknlp_dev --service gax-mcp-context-forge --force-new-deployment
+                 aws ecs update-service --cluster sparknlp-dev --service gax-mcp-context-forge --force-new-deployment
