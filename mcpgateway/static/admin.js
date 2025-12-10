@@ -12800,7 +12800,7 @@ function generateConfig(server, configType) {
     // Take first path after the base url from current URL
     const pathSegments = currentURL.pathname.split("/").filter(Boolean);
     let baseUrl = "";
-    if (pathSegments.length > 0) {
+    if (pathSegments.length > 0 && pathSegments[0] !== "admin") {
         baseUrl = `${protocol}//${currentHost}${currentPort !== "80" && currentPort !== "443" ? ":" + currentPort : ""}/${pathSegments[0]}`;
     }
     else {
