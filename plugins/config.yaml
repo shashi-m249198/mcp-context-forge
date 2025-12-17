@@ -16,14 +16,15 @@ plugin_settings:
   plugin_health_check_interval: 120
 
 plugins:
- - name: auth_header_injector
-   kind: "plugins.auth_header_injector.auth_header_injector.AuthHeaderInjectorPlugin"
-   description: "Injects authentication headers for HTTP requests to specific URL paths"
-   enabled: true
-   hooks:
+
+  - name: "auth_header_injector"
+    kind: "plugins.auth_header_injector.auth_header_injector.AuthHeaderInjectorPlugin"
+    description: "Injects authentication headers for HTTP requests to specific URL paths"
+    enabled: true
+    hooks:
      - "tool_pre_invoke"
-   priority: 10
-   config:
+    priority: 10
+    config:
      # Path-specific header injection (supports wildcards and regex)
      url_path_patterns:
        # To-be cleaned
