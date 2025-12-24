@@ -90,6 +90,7 @@ from mcpgateway.services.oauth_manager import OAuthManager
 from mcpgateway.services.structured_logger import get_structured_logger
 from mcpgateway.services.team_management_service import TeamManagementService
 from mcpgateway.services.tool_service import ToolService
+from mcpgateway.services.aws_sigv4 import SigV4MCPAuth
 from mcpgateway.utils.create_slug import slugify
 from mcpgateway.utils.display_name import generate_display_name
 from mcpgateway.utils.retry_manager import ResilientHttpClient
@@ -2694,14 +2695,28 @@ class GatewayService:  # pylint: disable=too-many-instance-attributes
                             if span:
                                 span.set_attribute("http.status_code", response.status_code)
                     elif (gateway.transport).lower() == "streamablehttp":
-                        async with streamablehttp_client(url=gateway.url, headers=headers, timeout=settings.health_check_timeout, httpx_client_factory=get_httpx_client_factory) as (
-                            read_stream,
-                            write_stream,
-                            _get_session_id,
-                        ):
-                            async with ClientSession(read_stream, write_stream) as session:
-                                # Initialize the session
-                                response = await session.initialize()
+                        if "bedrock-agentcore" in gateway.url:
+                            auth = SigV4MCPAuth(region="eu-central-1")
+                            async with streamablehttp_client(url=gateway.url, auth=auth,headers=headers, timeout=settings.health_check_timeout, httpx_client_factory=get_httpx_client_factory) as (
+                                read_stream,
+                                write_stream,
+                                _get_session_id,
+                            ):
+                                async with ClientSession(read_stream, write_stream) as session:
+                                    # Initialize the session
+                                    response = await session.initialize()
+                        else:
+                            async with streamablehttp_client(url=gateway.url, headers=headers,
+                                                             timeout=settings.health_check_timeout,
+                                                             httpx_client_factory=get_httpx_client_factory) as (
+                                    read_stream,
+                                    write_stream,
+                                    _get_session_id,
+                            ):
+                                async with ClientSession(read_stream, write_stream) as session:
+                                    # Initialize the session
+                                    response = await session.initialize()
+
 
                     # Reactivate gateway if it was previously inactive and health check passed now
                     if gateway.enabled and not gateway.reachable:
@@ -3862,6 +3877,8 @@ class GatewayService:  # pylint: disable=too-many-instance-attributes
         if authentication is None:
             authentication = {}
 
+
+
         # Use authentication directly instead
         def get_httpx_client_factory(
             headers: dict[str, str] | None = None,
@@ -3882,6 +3899,13 @@ class GatewayService:  # pylint: disable=too-many-instance-attributes
                 ctx = self.create_ssl_context(ca_certificate)
             else:
                 ctx = None
+
+            if "bedrock-agentcore" in server_url:
+                auth = SigV4MCPAuth("eu-central-1")
+            else:
+                auth = None
+
+            logger.error(f"*********Connecting to {server_url} with auth {auth} and headers {headers}**********")
             return httpx.AsyncClient(
                 verify=ctx if ctx else True,
                 follow_redirects=True,
@@ -3889,6 +3913,7 @@ class GatewayService:  # pylint: disable=too-many-instance-attributes
                 timeout=timeout or httpx.Timeout(30.0),
                 auth=auth,
             )
+
 
         async with streamablehttp_client(url=server_url, headers=authentication, httpx_client_factory=get_httpx_client_factory) as (read_stream, write_stream, _get_session_id):
             async with ClientSession(read_stream, write_stream) as session:

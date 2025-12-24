@@ -74,6 +74,7 @@ from mcpgateway.services.oauth_manager import OAuthManager
 from mcpgateway.services.performance_tracker import get_performance_tracker
 from mcpgateway.services.structured_logger import get_structured_logger
 from mcpgateway.services.team_management_service import TeamManagementService
+from mcpgateway.services.aws_sigv4 import SigV4MCPAuth
 from mcpgateway.utils.correlation_id import get_correlation_id
 from mcpgateway.utils.create_slug import slugify
 from mcpgateway.utils.display_name import generate_display_name
@@ -144,72 +145,38 @@ def extract_using_jq(data, jq_filter=""):
 
     return result
 
-class SigV4MCPAuth(httpx.Auth):
-    """AWS SigV4 Auth handler for Bedrock AgentCore MCP endpoints."""
-
-    requires_request_body = True
-
-    def __init__(self, region: str = None):
-        self.session = boto3.Session()
-        self.region = region or os.getenv("AWS_REGION", "eu-central-1")
-
-    def auth_flow(self, request: httpx.Request):
-        creds = self.session.get_credentials().get_frozen_credentials()
-
-        filtered = {
-            "host": request.url.host,
-            "content-type": request.headers.get("content-type", ""),
-            "accept": request.headers.get("accept", ""),
-            "mcp-session-id": request.headers.get("mcp-session-id", "b64a81a4-b0bc-4e5e-87d4-da997b990429"),
-        }
-
-        aws_req = AWSRequest(
-            method=request.method,
-            url=str(request.url),
-            headers=filtered,
-            data=request.content,
-        )
-        SigV4Auth(creds, "bedrock-agentcore", self.region).add_auth(aws_req)
-
-        for k, v in aws_req.headers.items():
-            request.headers[k] = v
-
-        yield request
-
-# async def invoke_mcp_sigv4_tool(
-#     agent_arn: str,
-#     tool_name: str,
-#     tool_args: dict,
-#     region: str | None = None,
-#     qualifier: str = "DEFAULT",
-#     timeout: float = 120.0,
-# ) -> dict:
-#     """
-#     Invoke an MCP tool on a Bedrock AgentCore runtime using AWS SigV4.
-#     """
+# class SigV4MCPAuth(httpx.Auth):
+#     """AWS SigV4 Auth handler for Bedrock AgentCore MCP endpoints."""
 #
-#     region = region or os.getenv("AWS_REGION", "eu-central-1")
-#     encoded_arn = agent_arn.replace(":", "%3A").replace("/", "%2F")
-#     endpoint = (
-#         f"https://bedrock-agentcore.{region}.amazonaws.com/"
-#         f"runtimes/{encoded_arn}/invocations?qualifier={qualifier}"
-#     )
+#     requires_request_body = True
 #
-#     auth = SigV4MCPAuth(region)
-#     # print("auth created:" , )
+#     def __init__(self, region: str = None):
+#         self.session = boto3.Session()
+#         self.region = region or os.getenv("AWS_REGION", "eu-central-1")
 #
-#     async with streamablehttp_client(url=endpoint, auth=auth, timeout=timeout) as streams:
-#         # MCP stream yields 3 values
-#         read_stream, write_stream, *_ = streams
+#     def auth_flow(self, request: httpx.Request):
+#         creds = self.session.get_credentials().get_frozen_credentials()
 #
-#         async with ClientSession(read_stream, write_stream) as session:
-#             await session.initialize()
+#         filtered = {
+#             "host": request.url.host,
+#             "content-type": request.headers.get("content-type", ""),
+#             "accept": request.headers.get("accept", ""),
+#             "mcp-session-id": request.headers.get("mcp-session-id", "b64a81a4-b0bc-4e5e-87d4-da997b990429"),
+#         }
 #
-#             # Call a tool by name using the MCP client API
-#             result = await session.call_tool(name=tool_name, arguments=tool_args)
+#         aws_req = AWSRequest(
+#             method=request.method,
+#             url=str(request.url),
+#             headers=filtered,
+#             data=request.content,
+#         )
+#         SigV4Auth(creds, "bedrock-agentcore", self.region).add_auth(aws_req)
 #
-#             # Return raw tool result
-#             return result
+#         for k, v in aws_req.headers.items():
+#             request.headers[k] = v
+#
+#         yield request
+
 
 
 class ToolError(Exception):
@@ -1866,6 +1833,7 @@ class ToolService:
                         try:
                             if "bedrock-agentcore" in server_url:
                                 auth = SigV4MCPAuth("eu-central-1")
+                                # auth  = SigV4Auth
                                 async with streamablehttp_client(url=server_url, headers=headers,auth=auth,
                                                                  httpx_client_factory=get_httpx_client_factory) as (
                                         read_stream, write_stream, _get_session_id):
