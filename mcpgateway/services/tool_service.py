@@ -37,6 +37,10 @@ from sqlalchemy import and_, case, delete, desc, Float, func, not_, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload, selectinload, Session
 
+import boto3
+from botocore.auth import SigV4Auth
+from botocore.awsrequest import AWSRequest
+
 # First-Party
 from mcpgateway.common.models import Gateway as PydanticGateway
 from mcpgateway.common.models import TextContent
@@ -70,6 +74,7 @@ from mcpgateway.services.oauth_manager import OAuthManager
 from mcpgateway.services.performance_tracker import get_performance_tracker
 from mcpgateway.services.structured_logger import get_structured_logger
 from mcpgateway.services.team_management_service import TeamManagementService
+from mcpgateway.services.aws_sigv4 import SigV4MCPAuth
 from mcpgateway.utils.correlation_id import get_correlation_id
 from mcpgateway.utils.create_slug import slugify
 from mcpgateway.utils.display_name import generate_display_name
@@ -139,6 +144,39 @@ def extract_using_jq(data, jq_filter=""):
         return message
 
     return result
+
+# class SigV4MCPAuth(httpx.Auth):
+#     """AWS SigV4 Auth handler for Bedrock AgentCore MCP endpoints."""
+#
+#     requires_request_body = True
+#
+#     def __init__(self, region: str = None):
+#         self.session = boto3.Session()
+#         self.region = region or os.getenv("AWS_REGION", "eu-central-1")
+#
+#     def auth_flow(self, request: httpx.Request):
+#         creds = self.session.get_credentials().get_frozen_credentials()
+#
+#         filtered = {
+#             "host": request.url.host,
+#             "content-type": request.headers.get("content-type", ""),
+#             "accept": request.headers.get("accept", ""),
+#             "mcp-session-id": request.headers.get("mcp-session-id", "b64a81a4-b0bc-4e5e-87d4-da997b990429"),
+#         }
+#
+#         aws_req = AWSRequest(
+#             method=request.method,
+#             url=str(request.url),
+#             headers=filtered,
+#             data=request.content,
+#         )
+#         SigV4Auth(creds, "bedrock-agentcore", self.region).add_auth(aws_req)
+#
+#         for k, v in aws_req.headers.items():
+#             request.headers[k] = v
+#
+#         yield request
+
 
 
 class ToolError(Exception):
@@ -1646,6 +1684,8 @@ class ToolService:
                     if request_headers:
                         headers = get_passthrough_headers(request_headers, headers, db, gateway)
 
+
+
                     def create_ssl_context(ca_certificate: str) -> ssl.SSLContext:
                         """Create an SSL context with the provided CA certificate.
 
@@ -1778,6 +1818,8 @@ class ToolService:
                         if correlation_id and headers:
                             headers["X-Correlation-ID"] = correlation_id
 
+                        # logger.error(f"************Request FINAL Headers ******** {headers}")
+
                         # Log MCP call start
                         mcp_start_time = time.time()
                         structured_logger.log(
@@ -1789,21 +1831,46 @@ class ToolService:
                         )
 
                         try:
-                            async with streamablehttp_client(url=server_url, headers=headers, httpx_client_factory=get_httpx_client_factory) as (read_stream, write_stream, _get_session_id):
-                                async with ClientSession(read_stream, write_stream) as session:
-                                    await session.initialize()
-                                    tool_call_result = await session.call_tool(tool.original_name, arguments)
+                            if "bedrock-agentcore" in server_url:
+                                auth = SigV4MCPAuth("eu-central-1")
+                                # auth  = SigV4Auth
+                                async with streamablehttp_client(url=server_url, headers=headers,auth=auth,
+                                                                 httpx_client_factory=get_httpx_client_factory) as (
+                                        read_stream, write_stream, _get_session_id):
+                                    async with ClientSession(read_stream, write_stream) as session:
+                                        await session.initialize()
+                                        tool_call_result = await session.call_tool(tool.original_name, arguments)
 
-                            # Log successful MCP call
-                            mcp_duration_ms = (time.time() - mcp_start_time) * 1000
-                            structured_logger.log(
-                                level="INFO",
-                                message=f"MCP tool call completed: {tool.original_name}",
-                                component="tool_service",
-                                correlation_id=correlation_id,
-                                duration_ms=mcp_duration_ms,
-                                metadata={"event": "mcp_call_completed", "tool_name": tool.original_name, "tool_id": tool.id, "transport": "streamablehttp", "success": True},
-                            )
+                                # Log successful MCP call
+                                mcp_duration_ms = (time.time() - mcp_start_time) * 1000
+                                structured_logger.log(
+                                    level="INFO",
+                                    message=f"MCP tool call completed: {tool.original_name}",
+                                    component="tool_service",
+                                    correlation_id=correlation_id,
+                                    duration_ms=mcp_duration_ms,
+                                    metadata={"event": "mcp_call_completed", "tool_name": tool.original_name,
+                                              "tool_id": tool.id, "transport": "streamablehttp", "success": True},
+                                )
+
+                                return tool_call_result
+
+                            else:
+                                async with streamablehttp_client(url=server_url, headers=headers, httpx_client_factory=get_httpx_client_factory) as (read_stream, write_stream, _get_session_id):
+                                    async with ClientSession(read_stream, write_stream) as session:
+                                        await session.initialize()
+                                        tool_call_result = await session.call_tool(tool.original_name, arguments)
+
+                                # Log successful MCP call
+                                mcp_duration_ms = (time.time() - mcp_start_time) * 1000
+                                structured_logger.log(
+                                    level="INFO",
+                                    message=f"MCP tool call completed: {tool.original_name}",
+                                    component="tool_service",
+                                    correlation_id=correlation_id,
+                                    duration_ms=mcp_duration_ms,
+                                    metadata={"event": "mcp_call_completed", "tool_name": tool.original_name, "tool_id": tool.id, "transport": "streamablehttp", "success": True},
+                                )
 
                             return tool_call_result
                         except Exception as e:
@@ -1829,6 +1896,7 @@ class ToolService:
                         if tool_gateway:
                             gateway_metadata = PydanticGateway.model_validate(tool_gateway)
                             global_context.metadata[GATEWAY_METADATA] = gateway_metadata
+                            global_context.metadata["request_headers"] = request_headers
                         pre_result, context_table = await self._plugin_manager.invoke_hook(
                             ToolHookType.TOOL_PRE_INVOKE,
                             payload=ToolPreInvokePayload(name=name, args=arguments, headers=HttpHeaderPayload(root=headers)),
