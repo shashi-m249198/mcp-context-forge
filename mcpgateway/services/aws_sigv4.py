@@ -6,8 +6,6 @@ import os
 import orjson
 
 
-from tests.unit.mcpgateway.plugins.fixtures.plugins.headers import logger
-
 
 class SigV4MCPAuth(httpx.Auth):
     """AWS SigV4 Auth handler for Bedrock AgentCore MCP endpoints."""
@@ -33,7 +31,6 @@ class SigV4MCPAuth(httpx.Auth):
                 "accept": request.headers.get("accept", ""),
                 "mcp-session-id": request.headers.get("mcp-session-id", ""),
             }
-        logger.error(f"*****Filtered data*******: {request.content}")
         aws_req = AWSRequest(
             method=request.method,
             url=str(request.url),
