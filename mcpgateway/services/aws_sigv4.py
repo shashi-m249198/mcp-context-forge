@@ -18,7 +18,8 @@ class SigV4MCPAuth(httpx.Auth):
     def auth_flow(self, request: httpx.Request):
         creds = self.session.get_credentials().get_frozen_credentials()
         payload = orjson.loads(request.content.decode()) if request.content else {}
-        if payload["method"] == "initialize":
+
+        if payload["method"] == "initialize" or payload["method"] == "message/send":
             filtered = {
                 "host": request.url.host,
                 "content-type": request.headers.get("content-type", ""),

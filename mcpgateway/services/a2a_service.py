@@ -29,6 +29,7 @@ from mcpgateway.services.logging_service import LoggingService
 from mcpgateway.services.structured_logger import get_structured_logger
 from mcpgateway.services.team_management_service import TeamManagementService
 from mcpgateway.services.tool_service import ToolService
+from mcpgateway.services.aws_sigv4 import SigV4MCPAuth
 from mcpgateway.utils.correlation_id import get_correlation_id
 from mcpgateway.utils.create_slug import slugify
 from mcpgateway.utils.services_auth import encode_auth  # ,decode_auth
@@ -888,7 +889,13 @@ class A2AAgentService:
                     },
                 )
 
-                http_response = await client.post(agent.endpoint_url, json=request_data, headers=headers)
+
+                if "bedrock-agentcore" in agent.endpoint_url:
+                    auth = SigV4MCPAuth("eu-central-1")
+                    http_response = await client.post(agent.endpoint_url,auth=auth,json=request_data, headers=headers)
+                else:
+                    http_response = await client.post(agent.endpoint_url, json=request_data, headers=headers)
+
                 call_duration_ms = (datetime.now(timezone.utc) - call_start_time).total_seconds() * 1000
 
                 if http_response.status_code == 200:
