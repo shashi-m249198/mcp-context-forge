@@ -37,10 +37,6 @@ from sqlalchemy import and_, case, delete, desc, Float, func, not_, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload, selectinload, Session
 
-import boto3
-from botocore.auth import SigV4Auth
-from botocore.awsrequest import AWSRequest
-
 # First-Party
 from mcpgateway.common.models import Gateway as PydanticGateway
 from mcpgateway.common.models import TextContent
@@ -144,38 +140,6 @@ def extract_using_jq(data, jq_filter=""):
         return message
 
     return result
-
-# class SigV4MCPAuth(httpx.Auth):
-#     """AWS SigV4 Auth handler for Bedrock AgentCore MCP endpoints."""
-#
-#     requires_request_body = True
-#
-#     def __init__(self, region: str = None):
-#         self.session = boto3.Session()
-#         self.region = region or os.getenv("AWS_REGION", "eu-central-1")
-#
-#     def auth_flow(self, request: httpx.Request):
-#         creds = self.session.get_credentials().get_frozen_credentials()
-#
-#         filtered = {
-#             "host": request.url.host,
-#             "content-type": request.headers.get("content-type", ""),
-#             "accept": request.headers.get("accept", ""),
-#             "mcp-session-id": request.headers.get("mcp-session-id", "b64a81a4-b0bc-4e5e-87d4-da997b990429"),
-#         }
-#
-#         aws_req = AWSRequest(
-#             method=request.method,
-#             url=str(request.url),
-#             headers=filtered,
-#             data=request.content,
-#         )
-#         SigV4Auth(creds, "bedrock-agentcore", self.region).add_auth(aws_req)
-#
-#         for k, v in aws_req.headers.items():
-#             request.headers[k] = v
-#
-#         yield request
 
 
 
@@ -2733,7 +2697,16 @@ class ToolService:
             elif agent.auth_type == "bearer" and agent.auth_value:
                 headers["Authorization"] = f"Bearer {agent.auth_value}"
 
-            http_response = await client.post(agent.endpoint_url, json=request_data, headers=headers)
+            if "bedrock-agentcore" in agent.endpoint_url:
+                # Use AWS SigV4 authentication for Bedrock AgentCore endpoints
+                from mcpgateway.services.aws_sigv4 import SigV4MCPAuth  # Import here to avoid circular dependency
+
+                # region = agent.annotations.get("aws_region") if agent.annotations else None
+                auth = SigV4MCPAuth("eu-central-1")
+                client.auth = auth
+                http_response = await client.post(agent.endpoint_url, json=request_data, headers=headers)
+            else:
+                http_response = await client.post(agent.endpoint_url, json=request_data, headers=headers)
 
             if http_response.status_code == 200:
                 return http_response.json()

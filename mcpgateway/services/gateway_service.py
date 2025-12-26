@@ -3905,7 +3905,6 @@ class GatewayService:  # pylint: disable=too-many-instance-attributes
             else:
                 auth = None
 
-            logger.error(f"*********Connecting to {server_url} with auth {auth} and headers {headers}**********")
             return httpx.AsyncClient(
                 verify=ctx if ctx else True,
                 follow_redirects=True,
