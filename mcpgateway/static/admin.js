@@ -20370,7 +20370,7 @@ function showTokenCreatedModal(tokenData) {
                         />
                         <button
                             onclick="copyToClipboard('new-token-value')"
-                            class="px-3 py-2 bg-indigo-600 text-white text-sm rounded-r-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            class="px-3 py-2 bg-indigo-600 text-sm rounded-r-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         >
                             Copy
                         </button>
@@ -20385,7 +20385,7 @@ function showTokenCreatedModal(tokenData) {
                 <div class="flex justify-end">
                     <button
                         onclick="this.closest('.fixed').remove()"
-                        class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        class="px-4 py-2 bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     >
                         I've Saved It
                     </button>
